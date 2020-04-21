@@ -199,7 +199,7 @@ describe('Transaction', () => {
 
         const importCSV = path.resolve(__dirname, 'import_template.csv');
 
-        const response = await request(app)
+        await request(app)
             .post('/transactions/import')
             .attach('file', importCSV);
 
