@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable no-await-in-loop */
 import parse from 'csv-parse';
 import fs from 'fs';
 import Transaction from '../models/Transaction';
@@ -38,21 +40,22 @@ class ImportTransactionsService {
         });
 
         await new Promise(resolve => csvParser.on('end', resolve));
+        const result: Transaction[] = [];
 
-        const promise = csvTransactions.map(transaction =>
-            createService.execute(
+        for (const csvTransaction of csvTransactions) {
+            const transaction = await createService.execute(
                 {
-                    title: transaction.title,
-                    value: transaction.value,
-                    type: transaction.type,
-                    categoryTitle: transaction.category,
+                    title: csvTransaction.title,
+                    value: csvTransaction.value,
+                    type: csvTransaction.type,
+                    categoryTitle: csvTransaction.category,
                 },
                 true,
-            ),
-        );
+            );
 
-        const newTransactions = await Promise.all(promise);
-        return newTransactions;
+            result.push(transaction);
+        }
+        return result;
     }
 }
 
