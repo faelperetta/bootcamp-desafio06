@@ -1,9 +1,9 @@
-import parse from 'csv-parse/lib/sync';
+import parse from 'csv-parse';
 import fs from 'fs';
 import Transaction from '../models/Transaction';
 import CreateTransactionService from './CreateTransactionService';
 
-interface TransactionCSV {
+interface CSVTransaction {
     title: string;
     value: number;
     type: string;
@@ -13,36 +13,45 @@ interface TransactionCSV {
 class ImportTransactionsService {
     async execute(filename: string): Promise<Transaction[]> {
         const createService = new CreateTransactionService();
-        const file = fs.readFileSync(filename);
+        const csvTransactions: CSVTransaction[] = [];
 
-        const records = parse(file, {
-            delimiter: ',',
-            columns: ['title', 'type', 'value', 'category'],
-            skip_lines_with_empty_values: true,
+        const transactionReadStream = fs.createReadStream(filename);
+        const csvParser = parse({
+            from_line: 2,
         });
 
-        const transactions: TransactionCSV[] = records
-            .filter((record: TransactionCSV) => record.title !== 'title')
-            .map((record: TransactionCSV) => {
-                return {
-                    title: record.title.trim(),
-                    type: record.type.trim(),
-                    category: record.category.trim(),
-                    value: Number(record.value),
-                };
-            });
+        transactionReadStream.pipe(csvParser);
 
-        const promise = transactions.map(transaction =>
-            createService.execute({
-                title: transaction.title,
-                value: transaction.value,
-                type: transaction.type,
-                categoryTitle: transaction.category,
-            }),
+        csvParser.on('data', async line => {
+            const [title, type, value, category] = line.map((cell: string) =>
+                cell.trim(),
+            );
+
+            if (!title || !value || !type || !category) return;
+
+            csvTransactions.push({
+                title,
+                value: Number(value),
+                type,
+                category,
+            });
+        });
+
+        await new Promise(resolve => csvParser.on('end', resolve));
+
+        const promise = csvTransactions.map(transaction =>
+            createService.execute(
+                {
+                    title: transaction.title,
+                    value: transaction.value,
+                    type: transaction.type,
+                    categoryTitle: transaction.category,
+                },
+                true,
+            ),
         );
 
         const newTransactions = await Promise.all(promise);
-
         return newTransactions;
     }
 }
