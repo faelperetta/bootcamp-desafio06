@@ -14,10 +14,12 @@ interface Request {
 }
 
 class CreateTransactionService {
-    public async execute(
-        { title, value, type, categoryTitle }: Request,
-        skipCheckBalance = false,
-    ): Promise<Transaction> {
+    public async execute({
+        title,
+        value,
+        type,
+        categoryTitle,
+    }: Request): Promise<Transaction> {
         const transactionsRepository = getCustomRepository(
             TransactionsRepository,
         );
@@ -28,7 +30,7 @@ class CreateTransactionService {
             throw new AppError('Invalid transaction type.');
         }
 
-        if (type === 'outcome' && !skipCheckBalance) {
+        if (type === 'outcome') {
             const balance = await transactionsRepository.getBalance();
             if (balance.total < value) {
                 throw new AppError(

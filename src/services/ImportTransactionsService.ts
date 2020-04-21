@@ -43,18 +43,17 @@ class ImportTransactionsService {
         const result: Transaction[] = [];
 
         for (const csvTransaction of csvTransactions) {
-            const transaction = await createService.execute(
-                {
-                    title: csvTransaction.title,
-                    value: csvTransaction.value,
-                    type: csvTransaction.type,
-                    categoryTitle: csvTransaction.category,
-                },
-                true,
-            );
+            const transaction = await createService.execute({
+                title: csvTransaction.title,
+                value: csvTransaction.value,
+                type: csvTransaction.type,
+                categoryTitle: csvTransaction.category,
+            });
 
             result.push(transaction);
         }
+
+        await fs.promises.unlink(filename);
         return result;
     }
 }
