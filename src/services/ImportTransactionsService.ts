@@ -8,7 +8,7 @@ import TransactionsRepository from '../repositories/TransactionsRepository';
 interface CSVTransaction {
     title: string;
     value: number;
-    type: string;
+    type: 'income' | 'outcome';
     category: string;
 }
 
@@ -63,7 +63,9 @@ class ImportTransactionsService {
             categoryRepository.create({ title }),
         );
 
-        await categoryRepository.insert(newCategories);
+        if (newCategories.length > 0) {
+            await categoryRepository.insert(newCategories);
+        }
 
         const finalCategories = [...newCategories, ...existentCategories];
         const transactions: Transaction[] = csvTransactions.map(transaction => {
@@ -73,7 +75,7 @@ class ImportTransactionsService {
                 category: finalCategories.find(
                     category => category.title === transaction.category,
                 ),
-                type: transaction.type === 'outcome' ? 'outcome' : 'income',
+                type: transaction.type,
             });
         });
 
